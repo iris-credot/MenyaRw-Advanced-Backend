@@ -5,7 +5,7 @@ const retrieveContext = require('../Utils/retrieveContext');
 const { buildMemorySummary } = require('../Utils/userMemory');
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-haiku-4-5-20251001';
 const MAX_TOKENS = 1024;
 const MAX_HISTORY = 20;
 const MAX_SESSIONS = 50;
@@ -113,11 +113,8 @@ exports.sendMessage = asyncWrapper(async (req, res, next) => {
   const memory = buildMemorySummary(session.messages);
 
   // STEP 2: RAG — retrieve verified data from database
-  const ragContext = await retrieveContext(
-    message,
-    session.site || null,
-    language
-  );
+ const ragContext = await retrieveContext(message, session.site, language);
+const trimmedContext = ragContext ? ragContext.slice(0, 3000) : '';
 
   // STEP 3: Build conversation history for Claude
   const historyForApi = [
@@ -129,7 +126,7 @@ exports.sendMessage = asyncWrapper(async (req, res, next) => {
   ];
 
   // STEP 4: Build system prompt
-  const systemPrompt = buildSystemPrompt(session.site, language, memory, ragContext);
+ const systemPrompt = buildSystemPrompt(session.site, language, memory, trimmedContext);
 
   // STEP 5: Call Claude API
   let assistantReply = '';
@@ -152,7 +149,7 @@ exports.sendMessage = asyncWrapper(async (req, res, next) => {
         }),
       }),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Claude API timeout')), 30000)
+        setTimeout(() => reject(new Error('Claude API timeout')), 60000)
       ),
     ]);
 
