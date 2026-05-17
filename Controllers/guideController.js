@@ -107,8 +107,16 @@ exports.createGuide = asyncWrapper(async (req, res, next) => {
   // ── In-app welcome notification ───────────────────────────────────────────────
   await Notification.create({
     user: guide._id,
-    title: 'Welcome, Guide! 🏛️',
-    message: `Your guide account has been created. You are assigned to "${siteName}". Please change your password after your first login.`,
+    title: {
+      en: 'Welcome, Moderator! 🏛️',
+      rw: 'Murakaza neza, Umubitsi! 🏛️',
+      fr: 'Bienvenue, Modérateur! 🏛️',
+    },
+    message: {
+      en: `Your moderator account has been created. You are assigned to "${siteName}". Please change your password after your first login.`,
+      rw: `Konti yawe yo gubitsa yashyizweho. Wahawe "${siteName}". Nyamuneka hindura ijambo banga nyuma yo kwinjira bwa mbere.`,
+      fr: `Votre compte modérateur a été créé. Vous êtes assigné à "${siteName}". Veuillez changer votre mot de passe après votre première connexion.`,
+    },
     type: 'account',
     site: site._id,
   });
@@ -211,8 +219,16 @@ exports.reassignGuide = asyncWrapper(async (req, res, next) => {
   // Notify the guide
   await Notification.create({
     user: guide._id,
-    title: 'Site Assignment Updated',
-    message: `You have been reassigned to "${siteName}".`,
+    title: {
+      en: 'Site Assignment Updated',
+      rw: 'Aho Ukorera Vyahinduwe',
+      fr: 'Affectation de Site Mise à Jour',
+    },
+    message: {
+      en: `You have been reassigned to "${siteName}".`,
+      rw: `Wahawe "${siteName}" nshya.`,
+      fr: `Vous avez été réaffecté à "${siteName}".`,
+    },
     type: 'account',
     site: newSite._id,
   });
@@ -251,8 +267,16 @@ exports.unassignGuide = asyncWrapper(async (req, res, next) => {
 
   await Notification.create({
     user: guide._id,
-    title: 'Site Assignment Removed',
-    message: `You have been unassigned from "${site.name.en || site.name.rw}".`,
+    title: {
+      en: 'Site Assignment Removed',
+      rw: 'Gukorwa kw\'Aho Ukorera',
+      fr: 'Affectation de Site Supprimée',
+    },
+    message: {
+      en: `You have been unassigned from "${site.name.en || site.name.rw}".`,
+      rw: `Wavanye kuri "${site.name.rw || site.name.en}".`,
+      fr: `Vous avez été désaffecté de "${site.name.fr || site.name.en}".`,
+    },
     type: 'account',
   });
 

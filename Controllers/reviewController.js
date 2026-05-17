@@ -7,18 +7,16 @@ const Visit = require('../Models/Visit');
 // ─── CREATE REVIEW ────────────────────────────────────────────────────────────
 exports.createReview = asyncWrapper(async (req, res, next) => {
   const { siteId } = req.params;
-  const { rating, comment, visitedOn } = req.body;
+  const { rating, comment, visitedOn, language } = req.body;
 
   if (!rating) return next(new BadRequest('Rating is required.'));
 
   const site = await Site.findById(siteId);
   if (!site) return next(new NotFound('Heritage site not found.'));
 
-  // Check if user already reviewed
   const existing = await Review.findOne({ site: siteId, user: req.userId });
   if (existing) return next(new BadRequest('You have already reviewed this site. Edit your existing review.'));
 
-  // Check for a verified visit
   const visited = await Visit.exists({ user: req.userId, site: siteId });
 
   const review = await Review.create({
@@ -27,10 +25,12 @@ exports.createReview = asyncWrapper(async (req, res, next) => {
     rating,
     comment,
     visitedOn,
+    // Use provided language or fall back to user's preferred language
+    language: language || req.user.preferredLanguage || 'en',
     isVerifiedVisit: !!visited,
   });
 
-  await review.populate('user', 'firstName lastName image');
+  await review.populate('user', 'firstName lastName image preferredLanguage');
 
   res.status(201).json({ success: true, review });
 });
@@ -93,3 +93,4 @@ exports.getMyReview = asyncWrapper(async (req, res) => {
   const review = await Review.findOne({ site: req.params.siteId, user: req.userId });
   res.status(200).json({ success: true, review: review || null });
 });
+

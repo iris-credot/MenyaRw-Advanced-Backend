@@ -66,16 +66,25 @@ exports.locationPing = asyncWrapper(async (req, res, next) => {
 
     if (alreadyNotified) continue;
 
-    // Pick correct multilingual content
+    // Pick correct multilingual content from site's geofence config
     const content = zone === '500m' ? site.geofence.welcome : site.geofence.teaser;
-    const siteName = site.name[lang] || site.name.en;
-    const message = content[lang] || content.en || `You are near ${siteName}!`;
+    const siteNameEn = site.name.en || site.name.rw || site.name.fr;
+    const siteNameRw = site.name.rw || site.name.en;
+    const siteNameFr = site.name.fr || site.name.en;
 
-    // Save in-app notification
+    // Save in-app notification with all 3 languages
     await Notification.create({
       user: req.userId,
-      title: zone === '500m' ? `Welcome to ${siteName}! 🏛️` : `${siteName} is nearby 📍`,
-      message,
+      title: {
+        en: zone === '500m' ? `Welcome to ${siteNameEn}! 🏛️` : `${siteNameEn} is nearby 📍`,
+        rw: zone === '500m' ? `Murakaza neza kuri ${siteNameRw}! 🏛️` : `${siteNameRw} iri hafi 📍`,
+        fr: zone === '500m' ? `Bienvenue à ${siteNameFr}! 🏛️` : `${siteNameFr} est à proximité 📍`,
+      },
+      message: {
+        en: content.en || `You are near ${siteNameEn}!`,
+        rw: content.rw || `Uri hafi ya ${siteNameRw}!`,
+        fr: content.fr || `Vous êtes près de ${siteNameFr}!`,
+      },
       type: 'geofence',
       site: site._id,
       geofenceZone: zone,

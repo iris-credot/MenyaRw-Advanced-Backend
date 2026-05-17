@@ -67,8 +67,16 @@ exports.register = asyncWrapper(async (req, res, next) => {
 
   await createNotification({
     user: user._id,
-    title: 'Welcome to Menya Rwanda! 🎉',
-    message: 'Your account has been created. Please verify your email to continue.',
+    title: {
+      en: 'Welcome to Menya Rwanda! 🎉',
+      rw: 'Murakaza neza kuri Menya Rwanda! 🎉',
+      fr: 'Bienvenue sur Menya Rwanda! 🎉',
+    },
+    message: {
+      en: 'Your account has been created. Please verify your email to continue.',
+      rw: 'Konti yawe yashyizweho neza. Nyamuneka emeza imeyili yawe gukomeza.',
+      fr: 'Votre compte a été créé. Veuillez vérifier votre email pour continuer.',
+    },
     type: 'account',
   });
 
@@ -89,62 +97,6 @@ exports.register = asyncWrapper(async (req, res, next) => {
   });
 });
 
-exports.login = asyncWrapper(async (req, res, next) => {
-  const { email, password } = req.body;
-  if (!email || !password) return next(new BadRequest('Email and password are required.'));
-
-  // 1. Authenticate
-  let user;
-  try {
-    user = await User.login(email.toLowerCase(), password);
-  } catch (err) {
-    return next(new UnauthorizedError('Invalid email or password.'));
-  }
-
-  // 2. Block unverified regular users
-  if (user.role === 'user' && !user.verified) {
-    return next(new UnauthorizedError('Please verify your email before logging in.'));
-  }
-
-  // 3. Sign token
-  const token = jwt.sign(
-    { id: user._id },           // keep payload minimal — fetch fresh from DB in protect()
-    process.env.SECRET_KEY,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
-
-  // 4. Set cookie (for web dashboard) AND header (for mobile)
-  res.cookie('jwt', token, {
-    httpOnly: true,             // JS cannot access it — protects against XSS
-    secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
-    sameSite: 'none',           // allows cross-domain requests (mobile + web)
-    maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days in milliseconds
-  });
-
-  res.setHeader('Authorization', `Bearer ${token}`);
-
-  // 5. Send response — only what frontend needs, not the whole user object
-  res.status(200).json({
-    success: true,
-    token,
-    mustChangePassword: user.mustChangePassword || false,
-    user: {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      role: user.role,
-      image: user.image,
-      preferredLanguage: user.preferredLanguage,
-    },
-  });
-});
-
-// ─── LOGOUT ───────────────────────────────────────────────────────────────────
-exports.logout = asyncWrapper(async (req, res) => {
-  res.clearCookie('jwt');
-  res.status(200).json({ success: true, message: 'Logged out successfully.' });
-});
 // ─── VERIFY OTP ───────────────────────────────────────────────────────────────
 exports.verifyOtp = asyncWrapper(async (req, res, next) => {
   const { otp } = req.body;
@@ -161,8 +113,16 @@ exports.verifyOtp = asyncWrapper(async (req, res, next) => {
 
   await createNotification({
     user: user._id,
-    title: 'Email Verified ✅',
-    message: 'Your account has been verified. Welcome to Menya Rwanda!',
+    title: {
+      en: 'Email Verified ✅',
+      rw: 'Imeyili Yemejwe ✅',
+      fr: 'Email Vérifié ✅',
+    },
+    message: {
+      en: 'Your account has been verified. Welcome to Menya Rwanda!',
+      rw: 'Konti yawe yemejwe. Murakaza neza kuri Menya Rwanda!',
+      fr: 'Votre compte a été vérifié. Bienvenue sur Menya Rwanda!',
+    },
     type: 'account',
   });
 
@@ -193,6 +153,35 @@ exports.resendOtp = asyncWrapper(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'New OTP sent to your email.' });
 });
 
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+exports.login = asyncWrapper(async (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) return next(new BadRequest('Email and password are required.'));
+
+  let user;
+  try {
+    user = await User.login(email.toLowerCase(), password);
+  } catch (err) {
+    return next(new UnauthorizedError(err.message));
+  }
+
+  // Guides are pre-verified by admin — regular users must verify email
+  if (!user.verified && user.role === 'user') {
+    return next(new UnauthorizedError('Please verify your email before logging in.'));
+  }
+
+  const token = signToken(user._id);
+  user.password = undefined;
+
+  // If guide logging in for the first time with a temp password,
+  // tell the frontend to redirect them to the change-password screen
+  res.status(200).json({
+    success: true,
+    token,
+    user,
+    mustChangePassword: user.mustChangePassword || false,
+  });
+});
 
 // ─── FORGOT PASSWORD ──────────────────────────────────────────────────────────
 exports.forgotPassword = asyncWrapper(async (req, res, next) => {
@@ -220,8 +209,16 @@ exports.forgotPassword = asyncWrapper(async (req, res, next) => {
 
   await createNotification({
     user: user._id,
-    title: 'Password Reset Requested 🔐',
-    message: 'A password reset link has been sent to your email.',
+    title: {
+      en: 'Password Reset Requested 🔐',
+      rw: 'Gusaba Gusubiranya Ijambo Banga 🔐',
+      fr: 'Réinitialisation du Mot de Passe Demandée 🔐',
+    },
+    message: {
+      en: 'A password reset link has been sent to your email.',
+      rw: 'Umunyururu wo gusubiranya ijambo banga woherejwe kuri imeyili yawe.',
+      fr: 'Un lien de réinitialisation du mot de passe a été envoyé à votre email.',
+    },
     type: 'account',
   });
 
@@ -259,8 +256,16 @@ exports.resetPassword = asyncWrapper(async (req, res, next) => {
 
   await createNotification({
     user: user._id,
-    title: 'Password Updated 🔐',
-    message: 'Your password has been changed successfully.',
+    title: {
+      en: 'Password Updated 🔐',
+      rw: 'Ijambo Banga Ryavuguruwe 🔐',
+      fr: 'Mot de Passe Mis à Jour 🔐',
+    },
+    message: {
+      en: 'Your password has been changed successfully.',
+      rw: 'Ijambo banga ryawe ryahinduwe neza.',
+      fr: 'Votre mot de passe a été modifié avec succès.',
+    },
     type: 'account',
   });
 
@@ -270,4 +275,16 @@ exports.resetPassword = asyncWrapper(async (req, res, next) => {
 // ─── GET CURRENT USER (me) ────────────────────────────────────────────────────
 exports.getMe = asyncWrapper(async (req, res) => {
   res.status(200).json({ success: true, user: req.user });
+});
+
+// ─── LOGOUT ───────────────────────────────────────────────────────────────────
+// Clears the cookie for web dashboard users.
+// Mobile app users simply discard the token on their end — nothing to clear server-side.
+exports.logout = asyncWrapper(async (req, res) => {
+  res.clearCookie('jwt', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
+  });
+  res.status(200).json({ success: true, message: 'Logged out successfully.' });
 });
