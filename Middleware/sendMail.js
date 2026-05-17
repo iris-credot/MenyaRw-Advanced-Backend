@@ -3,9 +3,11 @@ const nodemailer = require('nodemailer');
 // ─── Create transporter ONCE at startup ───────────────────────────────────────
 // Reused across all email sends — no new connection per email
 const transporter = nodemailer.createTransport({
+  service: "gmail",
   host: process.env.EMAIL_HOST,
   port: Number(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === 'true',
+  secure: process.env.EMAIL_SECURE ,
+  family: 4, 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
