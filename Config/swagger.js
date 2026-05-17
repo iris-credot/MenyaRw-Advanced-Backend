@@ -295,6 +295,11 @@ const options = {
       { name: 'Chatbot', description: 'AI heritage storytelling chatbot powered by Claude' },
       { name: 'Geofence', description: 'Location-based proximity detection and notifications' },
       { name: 'Moderators', description: 'Moderator account management (admin only)' },
+      { name: 'Activities', description: 'Things visitors can do at a heritage site' },
+      { name: 'Exhibits', description: 'Artifacts and exhibits inside a heritage site' },
+      { name: 'Timeline', description: 'Historical events timeline for a heritage site' },
+      { name: 'Visitor Info', description: 'Practical visitor information — directions, tours, contact, social media' },
+      { name: 'Gallery', description: 'Photos and videos for a heritage site' },
     ],
 
     // ─── PATHS ─────────────────────────────────────────────────────────────
@@ -1495,6 +1500,706 @@ const options = {
           security: [{ bearerAuth: [] }],
           parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
           responses: { 200: { description: 'Password reset. New credentials emailed.' } },
+        },
+      },
+
+      // ════════════════════════════════════════════════════════════════════
+      // ACTIVITIES
+      // ════════════════════════════════════════════════════════════════════
+      '/sites/{siteId}/activities': {
+        get: {
+          tags: ['Activities'],
+          summary: 'Get all activities for a site',
+          description: 'Public — anyone can view activities for a heritage site.',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+          ],
+          responses: {
+            200: {
+              description: 'List of activities',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer', example: 3 },
+                      activities: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            _id: { type: 'string' },
+                            site: { type: 'string' },
+                            name: { $ref: '#/components/schemas/MultilingualField' },
+                            description: { $ref: '#/components/schemas/MultilingualField' },
+                            duration: { type: 'string', example: '45 minutes' },
+                            included: { type: 'boolean', example: true },
+                            image: { type: 'string' },
+                            order: { type: 'integer', example: 1 },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['Activities'],
+          summary: 'Add an activity to a site (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  required: ['name'],
+                  properties: {
+                    name: { type: 'string', description: 'JSON multilingual: {"en":"...","rw":"...","fr":"..."}', example: '{"en":"Guided Tour","rw":"Inzira y\'ubushishozi","fr":"Visite guidée"}' },
+                    description: { type: 'string', description: 'JSON multilingual string' },
+                    duration: { type: 'string', example: '45 minutes' },
+                    included: { type: 'boolean', example: true, description: 'Included in admission fee' },
+                    order: { type: 'integer', example: 1, description: 'Display order' },
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: 'Activity created' },
+            400: { $ref: '#/components/responses/BadRequest' },
+            401: { $ref: '#/components/responses/Unauthorized' },
+            403: { $ref: '#/components/responses/Forbidden' },
+          },
+        },
+      },
+
+      '/sites/{siteId}/activities/{activityId}': {
+        get: {
+          tags: ['Activities'],
+          summary: 'Get a single activity',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'activityId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Activity found' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        patch: {
+          tags: ['Activities'],
+          summary: 'Update an activity (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'activityId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', description: 'JSON multilingual string' },
+                    description: { type: 'string', description: 'JSON multilingual string' },
+                    duration: { type: 'string' },
+                    included: { type: 'boolean' },
+                    order: { type: 'integer' },
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Activity updated' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        delete: {
+          tags: ['Activities'],
+          summary: 'Delete an activity (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'activityId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Activity deleted' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+      },
+
+      // ════════════════════════════════════════════════════════════════════
+      // EXHIBITS
+      // ════════════════════════════════════════════════════════════════════
+      '/sites/{siteId}/exhibits': {
+        get: {
+          tags: ['Exhibits'],
+          summary: 'Get all exhibits for a site',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: {
+              description: 'List of exhibits',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer' },
+                      exhibits: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            _id: { type: 'string' },
+                            name: { $ref: '#/components/schemas/MultilingualField' },
+                            description: { $ref: '#/components/schemas/MultilingualField' },
+                            image: { type: 'string' },
+                            yearCreated: { type: 'integer', example: 1850 },
+                            origin: { $ref: '#/components/schemas/MultilingualField' },
+                            material: { $ref: '#/components/schemas/MultilingualField' },
+                            location: { $ref: '#/components/schemas/MultilingualField' },
+                            order: { type: 'integer' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['Exhibits'],
+          summary: 'Add an exhibit to a site (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  required: ['name'],
+                  properties: {
+                    name: { type: 'string', description: 'JSON multilingual string', example: '{"en":"Royal Throne","rw":"Intebe y\'Umwami","fr":"Trône Royal"}' },
+                    description: { type: 'string', description: 'JSON multilingual string' },
+                    yearCreated: { type: 'integer', example: 1850 },
+                    origin: { type: 'string', description: 'JSON multilingual string' },
+                    material: { type: 'string', description: 'JSON multilingual string' },
+                    location: { type: 'string', description: 'Where inside the site it is displayed — JSON multilingual string' },
+                    order: { type: 'integer' },
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: 'Exhibit created' },
+            400: { $ref: '#/components/responses/BadRequest' },
+            403: { $ref: '#/components/responses/Forbidden' },
+          },
+        },
+      },
+
+      '/sites/{siteId}/exhibits/{exhibitId}': {
+        get: {
+          tags: ['Exhibits'],
+          summary: 'Get a single exhibit',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'exhibitId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Exhibit found' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        patch: {
+          tags: ['Exhibits'],
+          summary: 'Update an exhibit (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'exhibitId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', description: 'JSON multilingual string' },
+                    description: { type: 'string', description: 'JSON multilingual string' },
+                    yearCreated: { type: 'integer' },
+                    origin: { type: 'string', description: 'JSON multilingual string' },
+                    material: { type: 'string', description: 'JSON multilingual string' },
+                    location: { type: 'string', description: 'JSON multilingual string' },
+                    order: { type: 'integer' },
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Exhibit updated' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        delete: {
+          tags: ['Exhibits'],
+          summary: 'Delete an exhibit (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'exhibitId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Exhibit deleted' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+      },
+
+      // ════════════════════════════════════════════════════════════════════
+      // TIMELINE
+      // ════════════════════════════════════════════════════════════════════
+      '/sites/{siteId}/timeline': {
+        get: {
+          tags: ['Timeline'],
+          summary: 'Get full timeline for a site',
+          description: 'Returns all historical events sorted chronologically by year.',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: {
+              description: 'Timeline events',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer' },
+                      events: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            _id: { type: 'string' },
+                            year: { type: 'integer', example: 1932 },
+                            month: { type: 'integer', example: 4, nullable: true },
+                            title: { $ref: '#/components/schemas/MultilingualField' },
+                            description: { $ref: '#/components/schemas/MultilingualField' },
+                            image: { type: 'string' },
+                            isKeyEvent: { type: 'boolean', example: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['Timeline'],
+          summary: 'Add a timeline event (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  required: ['year', 'title'],
+                  properties: {
+                    year: { type: 'integer', example: 1932 },
+                    month: { type: 'integer', example: 4, description: 'Optional month (1-12)' },
+                    title: { type: 'string', description: 'JSON multilingual string', example: '{"en":"Palace constructed","rw":"Inzu yubatswe","fr":"Palais construit"}' },
+                    description: { type: 'string', description: 'JSON multilingual string' },
+                    isKeyEvent: { type: 'boolean', example: true, description: 'Highlight as a major milestone' },
+                    image: { type: 'string', format: 'binary', description: 'Optional photo for this event' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: 'Timeline event added' },
+            400: { $ref: '#/components/responses/BadRequest' },
+            403: { $ref: '#/components/responses/Forbidden' },
+          },
+        },
+      },
+
+      '/sites/{siteId}/timeline/{eventId}': {
+        get: {
+          tags: ['Timeline'],
+          summary: 'Get a single timeline event',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'eventId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Event found' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        patch: {
+          tags: ['Timeline'],
+          summary: 'Update a timeline event (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'eventId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    year: { type: 'integer' },
+                    month: { type: 'integer' },
+                    title: { type: 'string', description: 'JSON multilingual string' },
+                    description: { type: 'string', description: 'JSON multilingual string' },
+                    isKeyEvent: { type: 'boolean' },
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Event updated' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        delete: {
+          tags: ['Timeline'],
+          summary: 'Delete a timeline event (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'eventId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Event deleted' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+      },
+
+      // ════════════════════════════════════════════════════════════════════
+      // VISITOR INFO
+      // ════════════════════════════════════════════════════════════════════
+      '/sites/{siteId}/visitor-info': {
+        get: {
+          tags: ['Visitor Info'],
+          summary: 'Get visitor info for a site',
+          description: 'Public — returns practical visitor information including directions, parking, guided tours, contact details, and social media.',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: {
+              description: 'Visitor info or null if not yet added',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      visitorInfo: {
+                        type: 'object',
+                        nullable: true,
+                        properties: {
+                          gettingThere: { $ref: '#/components/schemas/MultilingualField' },
+                          parking: { type: 'boolean' },
+                          wheelchairAccessible: { type: 'boolean' },
+                          bestTimeToVisit: { $ref: '#/components/schemas/MultilingualField' },
+                          averageVisitDuration: { type: 'string', example: '2-3 hours' },
+                          guidedTours: { type: 'boolean' },
+                          guidedTourSchedule: { type: 'string', example: 'Daily at 9AM, 11AM, 2PM' },
+                          guidedTourFee: { type: 'string' },
+                          availableLanguages: { type: 'array', items: { type: 'string' }, example: ['en', 'rw', 'fr'] },
+                          nearbyAccommodation: { $ref: '#/components/schemas/MultilingualField' },
+                          dresscode: { $ref: '#/components/schemas/MultilingualField' },
+                          photographyAllowed: { type: 'boolean' },
+                          tips: { $ref: '#/components/schemas/MultilingualField' },
+                          phone: { type: 'string' },
+                          email: { type: 'string' },
+                          officialWebsite: { type: 'string' },
+                          socialMedia: {
+                            type: 'object',
+                            properties: {
+                              facebook: { type: 'string' },
+                              instagram: { type: 'string' },
+                              twitter: { type: 'string' },
+                              youtube: { type: 'string' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        put: {
+          tags: ['Visitor Info'],
+          summary: 'Create or update visitor info (admin or assigned moderator)',
+          description: 'Uses upsert — creates if it does not exist, updates if it does. Send only the fields you want to update.',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    gettingThere: { type: 'object', description: 'Multilingual: {en, rw, fr}', example: { en: 'Take bus 16 from Kigali to Nyanza', rw: '', fr: '' } },
+                    parking: { type: 'boolean', example: true },
+                    parkingDetails: { type: 'object', description: 'Multilingual: {en, rw, fr}' },
+                    wheelchairAccessible: { type: 'boolean', example: false },
+                    accessibility: { type: 'object', description: 'Multilingual: {en, rw, fr}' },
+                    bestTimeToVisit: { type: 'object', example: { en: 'Early morning, dry season (June-September)', rw: '', fr: '' } },
+                    averageVisitDuration: { type: 'string', example: '2-3 hours' },
+                    guidedTours: { type: 'boolean', example: true },
+                    guidedTourSchedule: { type: 'string', example: 'Daily at 9AM, 11AM, 2PM' },
+                    guidedTourFee: { type: 'string', example: 'RWF 1,000' },
+                    availableLanguages: { type: 'array', items: { type: 'string', enum: ['en', 'rw', 'fr'] }, example: ['en', 'rw'] },
+                    nearbyAccommodation: { type: 'object', description: 'Multilingual: {en, rw, fr}' },
+                    nearbyRestaurants: { type: 'object', description: 'Multilingual: {en, rw, fr}' },
+                    nearbyAttractions: { type: 'object', description: 'Multilingual: {en, rw, fr}' },
+                    dresscode: { type: 'object', example: { en: 'Modest dress required', rw: '', fr: '' } },
+                    photographyAllowed: { type: 'boolean', example: true },
+                    photographyRules: { type: 'object', description: 'Multilingual: {en, rw, fr}' },
+                    tips: { type: 'object', example: { en: 'Arrive early to avoid crowds', rw: '', fr: '' } },
+                    phone: { type: 'string', example: '+250788123456' },
+                    email: { type: 'string', example: 'info@kingspalace.rw' },
+                    officialWebsite: { type: 'string', example: 'https://kingspalace.rw' },
+                    socialMedia: {
+                      type: 'object',
+                      properties: {
+                        facebook: { type: 'string' },
+                        instagram: { type: 'string' },
+                        twitter: { type: 'string' },
+                        youtube: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Visitor info saved' },
+            403: { $ref: '#/components/responses/Forbidden' },
+          },
+        },
+        delete: {
+          tags: ['Visitor Info'],
+          summary: 'Delete visitor info (admin only)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Visitor info deleted' },
+            403: { $ref: '#/components/responses/Forbidden' },
+          },
+        },
+      },
+
+      // ════════════════════════════════════════════════════════════════════
+      // GALLERY
+      // ════════════════════════════════════════════════════════════════════
+      '/sites/{siteId}/gallery': {
+        get: {
+          tags: ['Gallery'],
+          summary: 'Get gallery for a site',
+          description: 'Returns all photos and videos. Filter by type using query param.',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'query', name: 'type', schema: { type: 'string', enum: ['photo', 'video'] }, description: 'Filter by media type' },
+          ],
+          responses: {
+            200: {
+              description: 'Gallery items',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      count: { type: 'integer' },
+                      gallery: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            _id: { type: 'string' },
+                            type: { type: 'string', enum: ['photo', 'video'] },
+                            title: { $ref: '#/components/schemas/MultilingualField' },
+                            caption: { $ref: '#/components/schemas/MultilingualField' },
+                            url: { type: 'string', example: 'https://res.cloudinary.com/...' },
+                            thumbnailUrl: { type: 'string' },
+                            order: { type: 'integer' },
+                            isCover: { type: 'boolean' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['Gallery'],
+          summary: 'Add a photo or video to gallery (admin or assigned moderator)',
+          description: 'For photos — upload an image file. For videos — provide a YouTube embed URL in the videoUrl field.',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  required: ['type'],
+                  properties: {
+                    type: { type: 'string', enum: ['photo', 'video'], example: 'photo' },
+                    title: { type: 'string', description: 'JSON multilingual string' },
+                    caption: { type: 'string', description: 'JSON multilingual string' },
+                    image: { type: 'string', format: 'binary', description: 'Required for type=photo' },
+                    videoUrl: { type: 'string', example: 'https://www.youtube.com/embed/xxxxx', description: 'Required for type=video' },
+                    thumbnailUrl: { type: 'string', description: 'Optional thumbnail for videos' },
+                    order: { type: 'integer', example: 1 },
+                    isCover: { type: 'boolean', example: false, description: 'Set as the main cover image for the site' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: 'Gallery item added' },
+            400: { $ref: '#/components/responses/BadRequest' },
+            403: { $ref: '#/components/responses/Forbidden' },
+          },
+        },
+        delete: {
+          tags: ['Gallery'],
+          summary: 'Clear entire gallery for a site (admin only)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Gallery cleared' },
+            403: { $ref: '#/components/responses/Forbidden' },
+          },
+        },
+      },
+
+      '/sites/{siteId}/gallery/{itemId}': {
+        get: {
+          tags: ['Gallery'],
+          summary: 'Get a single gallery item',
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'itemId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Gallery item found' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        patch: {
+          tags: ['Gallery'],
+          summary: 'Update a gallery item (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'itemId', required: true, schema: { type: 'string' } },
+          ],
+          requestBody: {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string', description: 'JSON multilingual string' },
+                    caption: { type: 'string', description: 'JSON multilingual string' },
+                    order: { type: 'integer' },
+                    isCover: { type: 'boolean' },
+                    image: { type: 'string', format: 'binary', description: 'Replace existing photo' },
+                    videoUrl: { type: 'string', description: 'Replace existing video URL' },
+                    thumbnailUrl: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Gallery item updated' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
+        },
+        delete: {
+          tags: ['Gallery'],
+          summary: 'Delete a gallery item (admin or assigned moderator)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'path', name: 'siteId', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'itemId', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            200: { description: 'Gallery item deleted' },
+            403: { $ref: '#/components/responses/Forbidden' },
+            404: { $ref: '#/components/responses/NotFound' },
+          },
         },
       },
 
