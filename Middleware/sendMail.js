@@ -1,42 +1,29 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === 'true', // false for port 587
-  family: 4,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-   tls: {
-    rejectUnauthorized: false,  // fixes some TLS issues on Render
-  },
-  socketTimeout: 30000,
-  greetingTimeout: 30000,
-  connectionTimeout: 30000,
-});
-
-transporter.verify((error) => {
-  if (error) {
-    console.error('❌ SMTP connection failed:', error.message);
-  } else {
-    console.log('✅ SMTP server ready to send emails');
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, subject, text, html = null) => {
-  const mailOptions = {
-    from: `"Menya Rwanda" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    text,
-    ...(html && { html }),
-  };
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Menya Rwanda <onboarding@resend.dev>',
+      to,
+      subject,
+      text,
+      ...(html && { html }),
+    });
 
-  const info = await transporter.sendMail(mailOptions);
-  console.log(`📧 Email sent to ${to} — ${info.messageId}`);
-  return info;
+    if (error) {
+      console.error('❌ Email error:', error);
+      throw new Error(error.message);
+    }
+
+    console.log(`📧 Email sent to ${to} — ${data.id}`);
+    return data;
+
+  } catch (err) {
+    console.error('❌ Email failed:', err.message);
+    throw err;
+  }
 };
 
 module.exports = sendEmail;
