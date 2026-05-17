@@ -5,6 +5,8 @@ const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./Config/swagger');
 const errorHandler = require('./Middleware/errorHandler');
+const cookieParser = require('cookie-parser');
+
 
 // Route imports
 const allRoutes = require('./Routes/all');
@@ -23,6 +25,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
