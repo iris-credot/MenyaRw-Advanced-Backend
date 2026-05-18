@@ -52,7 +52,7 @@ const siteSchema = new mongoose.Schema(
 
     // ─── Media ─────────────────────────────────────────────────────────────────
     coverImage: { type: String, default: '' },
-    images: [{ type: String }], // Array of Cloudinary URLs
+   
     audioGuideUrl: { type: String, default: '' }, // Optional audio file URL
 
     // ─── Geospatial (GeoJSON Point – required for geofencing & map) ────────────
