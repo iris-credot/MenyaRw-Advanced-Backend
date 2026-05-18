@@ -1,13 +1,7 @@
 const asyncWrapper = require('../Middleware/async');
 const { BadRequest, NotFound, ForbiddenError } = require('../Error/index');
 const Site = require('../Models/Site');
-const cloudinary = require('cloudinary').v2;
 
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.API_KEY,
-  api_secret: process.env.API_SECRET,
-});
 
 // ─── CREATE SITE (admin) ──────────────────────────────────────────────────────
 exports.createSite = asyncWrapper(async (req, res, next) => {
@@ -30,25 +24,7 @@ exports.createSite = asyncWrapper(async (req, res, next) => {
     try { return JSON.parse(val); } catch { return { en: val, rw: '', fr: '' }; }
   };
 
-  let coverImage = '';
-  const images = [];
-
-  if (req.files) {
-    if (req.files.coverImage) {
-      const r = await cloudinary.uploader.upload(req.files.coverImage[0].path, {
-        folder: 'MenyaRwanda/Sites',
-      });
-      coverImage = r.secure_url;
-    }
-    if (req.files.images) {
-      for (const file of req.files.images) {
-        const r = await cloudinary.uploader.upload(file.path, {
-          folder: 'MenyaRwanda/Sites',
-        });
-        images.push(r.secure_url);
-      }
-    }
-  }
+ 
 
   const site = await Site.create({
     name: parseMl(name),
@@ -66,8 +42,6 @@ exports.createSite = asyncWrapper(async (req, res, next) => {
     admissionFee,
     contactInfo,
     website,
-    coverImage,
-    images,
     geofence: {
       teaser: parseMl(geofenceTeaser),
       welcome: parseMl(geofenceWelcome),
